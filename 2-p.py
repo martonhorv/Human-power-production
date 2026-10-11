@@ -5,17 +5,17 @@ from scipy.optimize import least_squares
 
 # 3-P MODEL
 
-input_excel =    r"C:\Users\canoe\Downloads\mmps_wide_monotonic_filt_3h.xlsx"   # r"C:\Users\canoe\Downloads\MMPsmale.xlsx"  #   
-sheet_name = "Sheet1"
-output_excel = r"C:\Users\canoe\OneDrive\Asztali gép\Final\2-p all.xlsx"
-residual_excel = r"C:\Users\canoe\OneDrive\Asztali gép\Final\r_2-p_all.xlsx"
+
+# add paths
+input_excel =    r""   
+sheet_name = ""
+output_excel = r""
+residual_excel = r""
 
 
 def unified_model(x, t):
-
     W = x[0]
     CP = x[1]
-
     return W/t + CP
 
 
@@ -25,18 +25,13 @@ def residuals(x, t, y):
 
 
 def r2(y, yfit):
-
     ss_res = np.sum((y-yfit)**2)
     ss_tot = np.sum((y-np.mean(y))**2)
-
     return 1 - ss_res/ss_tot
 
 def aic(y, yfit, k):
-
     n = len(y)
-
     rss = np.sum((y-yfit)**2)
-
     return n*np.log(rss/n) + 2*k
 
 
@@ -47,7 +42,7 @@ t_all = pd.to_numeric(df.iloc[:,0],errors="coerce")
 summary_rows = []
 correlation_sheets = {}
 
-
+#filter durations included
 #time_values = [1, 2, 4, 7, 14, 28, 56, 112, 225, 450, 900, 1800, 3600, 7200, 10800]
 
 time_values = [1, 2, 3, 5, 7, 11, 16, 25, 37, 55, 83, 125, 190, 280, 420, 630, 960, 1440, 2160, 3240, 4800, 7200, 10800]
@@ -57,10 +52,7 @@ time_values=t_all
 residual_df = {"time": time_values}
 
 
-
 for subject in df.columns[1:]: 
-
-    print(f"Processing {subject}")
 
     P_all = pd.to_numeric(df[subject], errors="coerce").values
 
@@ -73,16 +65,8 @@ for subject in df.columns[1:]:
     t = t_all[mask_t]
     P_t = P_all[mask_t]
 
-
-    if len(t) < 10:
-        print("Skipping (too few points)")
-        continue
-
     try:
-
-        
-        x0 = [10000, 400]
-
+        x0 = [10000, 400]    # initial parameter estimates
 
         res = least_squares(residuals, x0=x0, args=(t, P_t), method="trf", loss="linear", verbose=0)
 
@@ -92,18 +76,16 @@ for subject in df.columns[1:]:
 
         residual_values = np.full(len(time_values), np.nan)
 
-        residual_values = (P_fit_t-P_t)                                                 # relative errors?
+        residual_values = (P_fit_t-P_t)                    
 
         residual_df[subject] = residual_values
 
 
         W = x_opt[0]
         CP = x_opt[1]
-
-
+        
         m = len(P_t)
         p = len(x_opt)
-
 
         sigma2 = np.sum(res.fun**2)/(m-p)
 
@@ -120,8 +102,6 @@ for subject in df.columns[1:]:
         se = np.sqrt(np.diag(cov))
 
         corr = cov / np.outer(se, se)
-
-        # ==========================
 
         R2 = r2(P_t, P_fit_t)
 
@@ -143,7 +123,7 @@ for subject in df.columns[1:]:
             "R2": R2,
             "AIC": AIC,
 
-            "RMSE":RMSE,
+            "RMSE": RMSE,
             "MAE": MAE,
             "RMSRE": RMSRE,
             "MARE": MARE,
@@ -186,9 +166,9 @@ with pd.ExcelWriter(output_excel, engine="openpyxl") as writer:
 with pd.ExcelWriter(residual_excel, engine="openpyxl") as writer:
     residual_df.to_excel(writer, index=False)
 
-#    for subject, corr_df in correlation_sheets.items():
-#        sheet = (str(subject)[:26]+ "_corr")
- #       corr_df.to_excel(writer,sheet_name=sheet)
+   for subject, corr_df in correlation_sheets.items():
+        sheet = (str(subject)[:26]+ "_corr")
+        corr_df.to_excel(writer,sheet_name=sheet)
 
 print("Finished.")
 
