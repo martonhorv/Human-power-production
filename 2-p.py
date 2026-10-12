@@ -43,14 +43,10 @@ summary_rows = []
 correlation_sheets = {}
 
 #filter durations included
-#time_values = [1, 2, 4, 7, 14, 28, 56, 112, 225, 450, 900, 1800, 3600, 7200, 10800]
 
 time_values = [1, 2, 3, 5, 7, 11, 16, 25, 37, 55, 83, 125, 190, 280, 420, 630, 960, 1440, 2160, 3240, 4800, 7200, 10800]
 
-time_values=t_all
-
 residual_df = {"time": time_values}
-
 
 for subject in df.columns[1:]: 
 
@@ -59,14 +55,13 @@ for subject in df.columns[1:]:
     mask_t = (np.isfinite(t_all) & np.isfinite(P_all) & (t_all > 0))
 
 
-    mask_t = t_all[t_all.isin(time_values)].index       # indices of included durations
-
+    mask_t = t_all[t_all.isin(time_values)].index  
 
     t = t_all[mask_t]
     P_t = P_all[mask_t]
 
     try:
-        x0 = [10000, 400]    # initial parameter estimates
+        x0 = [10000, 400]  
 
         res = least_squares(residuals, x0=x0, args=(t, P_t), method="trf", loss="linear", verbose=0)
 
@@ -98,7 +93,6 @@ for subject in df.columns[1:]:
 
         cov = sigma2 * np.linalg.pinv(JTJ)
 
-
         se = np.sqrt(np.diag(cov))
 
         corr = cov / np.outer(se, se)
@@ -111,7 +105,6 @@ for subject in df.columns[1:]:
         MAE = np.mean(np.abs(P_t - P_fit_t))
         RMSRE = np.sqrt(np.mean(((P_t - P_fit_t) / P_t)**2))
         MARE = np.mean(np.abs((P_t - P_fit_t) / P_t))
-
 
         summary_rows.append({
             "Subject": subject,
@@ -147,8 +140,6 @@ for subject in df.columns[1:]:
 
         correlation_sheets[subject] = corr_df
 
-    
-
     except Exception as e:
         print(f"Failed: {subject}")
         print(e)
@@ -169,6 +160,4 @@ with pd.ExcelWriter(residual_excel, engine="openpyxl") as writer:
    for subject, corr_df in correlation_sheets.items():
         sheet = (str(subject)[:26]+ "_corr")
         corr_df.to_excel(writer,sheet_name=sheet)
-
-print("Finished.")
 
